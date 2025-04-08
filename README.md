@@ -22,7 +22,7 @@ Use your favorite plugin manager!
 }
 ```
 
-## Others
+## Available functions
 Start a presentation for the parent directory of the current open file.
 ```vim
 :lua Present.start()

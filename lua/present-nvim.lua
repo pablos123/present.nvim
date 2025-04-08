@@ -41,15 +41,11 @@ function H.file_exists(filepath)
     return stat ~= nil and stat.type == 'file'
 end
 
-function H.print_error(error)
-    vim.api.nvim_echo({ { 'Present: ' .. error, 'ErrorMsg' } }, true, { err = true })
-end
-
 local PresentClass = {}
 
 function PresentClass:next_slide()
-    if vim.api.nvim_get_current_buf() ~= self.slide_buf then
-        H.print_error('You are not in the slides buffer.')
+    if vim.api.nvim_get_current_buf() ~= self.slides_buf then
+        print("You are not in the slides' buffer.")
         return
     end
 
@@ -58,7 +54,7 @@ function PresentClass:next_slide()
 
     local file_path = self.files[counter]
     if not H.file_exists(file_path) then
-        H.print_error('Next slide removed or missing. Start a new presentation.')
+        print('Next slide removed or missing. Start a new presentation.')
         return
     end
 
@@ -67,8 +63,8 @@ function PresentClass:next_slide()
 end
 
 function PresentClass:previous_slide()
-    if vim.api.nvim_get_current_buf() ~= self.slide_buf then
-        H.print_error('You are not in the slides buffer.')
+    if vim.api.nvim_get_current_buf() ~= self.slides_buf then
+        print("You are not in the slides' buffer.")
         return
     end
 
@@ -77,7 +73,7 @@ function PresentClass:previous_slide()
 
     local file_path = self.files[counter]
     if not H.file_exists(file_path) then
-        H.print_error('Previous slide removed or missing. Start a new presentation.')
+        print('Previous slide removed or missing. Start a new presentation.')
         return
     end
 
@@ -86,11 +82,11 @@ function PresentClass:previous_slide()
 end
 
 function PresentClass:show_slide()
-    H.make_buf_modifiable(self.slide_buf, true)
-    vim.api.nvim_buf_set_lines(self.slide_buf, 0, -1, false,
+    H.make_buf_modifiable(self.slides_buf, true)
+    vim.api.nvim_buf_set_lines(self.slides_buf, 0, -1, false,
         vim.fn.readfile(self.files[self.counter]))
-    H.make_buf_modifiable(self.slide_buf, false)
-    vim.api.nvim_set_current_buf(self.slide_buf)
+    H.make_buf_modifiable(self.slides_buf, false)
+    vim.api.nvim_set_current_buf(self.slides_buf)
     self:update_statusline()
 end
 
@@ -105,7 +101,7 @@ function PresentClass:prepare_files()
     local buffer_path = vim.fn.expand('%:p')
 
     if not H.file_exists(buffer_path) then
-        H.print_error('The presentation needs to be run inside a file.')
+        print('The presentation needs to be run inside a file.')
         return false
     end
 
@@ -122,7 +118,7 @@ function PresentClass:prepare_files()
     for _, _ in ipairs(self.files) do count = count + 1 end
 
     if count == 0 then
-        H.print_error('No markdown files iside the directory.')
+        print('No markdown files inside the directory.')
         return false
     end
 
@@ -131,8 +127,6 @@ function PresentClass:prepare_files()
 end
 
 function PresentClass:wipe_current_presentation()
-    -- It's not possible to open a file inside the presentation tab.
-
     -- Try to move to the presentation tab
     pcall(vim.api.nvim_set_current_tabpage, self.presentation_tab)
 
@@ -149,17 +143,12 @@ function PresentClass:wipe_current_presentation()
         vim.cmd('tabclose')
     end
 
-    if self.presentation_buf ~= nil then
-        pcall(vim.api.nvim_buf_delete, self.presentation_buf, { force = false })
-    end
-
-    if self.slide_buf ~= nil then
-        pcall(vim.api.nvim_buf_delete, self.slide_buf, { force = false })
-    end
+    pcall(vim.api.nvim_buf_delete, self.presentation_buf, { force = true })
+    pcall(vim.api.nvim_buf_delete, self.slides_buf, { force = true })
 
     self.presentation_tab = nil
     self.presentation_buf = nil
-    self.slide_buf = nil
+    self.slides_buf = nil
 end
 
 function PresentClass:start()
@@ -202,7 +191,8 @@ function PresentClass:start()
     local float_width = math.floor(total_width * 0.75)
     local float_height = math.floor(total_height * 0.75)
 
-    self.slide_win = vim.api.nvim_open_win(self.presentation_buf, true, {
+    -- Create the slides window
+    self.slides_win = vim.api.nvim_open_win(self.presentation_buf, true, {
         relative = 'editor',
         style = 'minimal',
         col = math.floor((total_width - float_width) * 0.5),
@@ -211,20 +201,20 @@ function PresentClass:start()
         height = float_height,
     })
 
-    H.make_win_minimal(self.slide_win)
+    H.make_win_minimal(self.slides_win)
 
-    -- Create the slide buffer
-    self.slide_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(self.slide_buf, self.slide_buf_name)
+    -- Create the slides buffer
+    self.slides_buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_name(self.slides_buf, self.slide_buf_name)
 
     -- One time only settings
-    vim.api.nvim_set_option_value('wrap', true, { win = self.slide_win })
-    vim.api.nvim_set_option_value('filetype', 'markdown', { buf = self.slide_buf })
-    vim.api.nvim_set_option_value('buftype', 'nofile', { buf = self.slide_buf })
+    vim.api.nvim_set_option_value('wrap', true, { win = self.slides_win })
+    vim.api.nvim_set_option_value('filetype', 'markdown', { buf = self.slides_buf })
+    vim.api.nvim_set_option_value('buftype', 'nofile', { buf = self.slides_buf })
 
     -- Create mappings
-    vim.keymap.set('n', 'gn', function() self:next_slide() end, { buffer = self.slide_buf, silent = true })
-    vim.keymap.set('n', 'gp', function() self:previous_slide() end, { buffer = self.slide_buf, silent = true })
+    vim.keymap.set('n', 'gn', function() self:next_slide() end, { buffer = self.slides_buf, silent = true })
+    vim.keymap.set('n', 'gp', function() self:previous_slide() end, { buffer = self.slides_buf, silent = true })
 
     self:show_slide()
 end
