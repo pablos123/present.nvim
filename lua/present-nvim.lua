@@ -44,8 +44,8 @@ end
 local PresentClass = {}
 
 function PresentClass:is_presenting()
-    return not (self.slides_win and self.slides_buf and
-        self.presentation_win and self.presentation_buf)
+    return self.slides_win and self.slides_buf and
+        self.presentation_win and self.presentation_buf
 end
 
 function PresentClass:next_slide()
