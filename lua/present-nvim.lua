@@ -43,7 +43,17 @@ end
 
 local PresentClass = {}
 
+function PresentClass:is_presenting()
+    return not (self.slides_win and self.slides_buf and
+        self.presentation_win and self.presentation_buf)
+end
+
 function PresentClass:next_slide()
+    if not self:is_presenting() then
+        print("You are not presenting.")
+        return
+    end
+
     local counter = self.counter + 1
     if counter == self.files_count + 1 then counter = 1 end
 
@@ -58,6 +68,11 @@ function PresentClass:next_slide()
 end
 
 function PresentClass:previous_slide()
+    if not self:is_presenting() then
+        print("You are not presenting.")
+        return
+    end
+
     local counter = self.counter - 1
     if counter == 0 then counter = self.files_count end
 
