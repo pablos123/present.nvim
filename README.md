@@ -1,12 +1,11 @@
 # present.nvim
-Simple presentations for markdown files inside Neovim.
+Simple presentations of markdown files inside Neovim.
 
 ## Features
 - Opinionated.
-- Really simple.
 - Only one presentation at a time.
-- Open a tab to iterate over the markdown files of a directory.
-- Local mappings: `gn`, `gp`, go to next and go to previous slide.
+- Open a tab to iterate over a directory's markdown files.
+- `gn` and `gp` local mappings to go to next and go to previous slide.
 
 ## Dependencies
 - `nvim >= 0.10`.
