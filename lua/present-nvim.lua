@@ -82,16 +82,28 @@ function PresentClass:previous_slide()
 end
 
 function PresentClass:show_slide()
+    -- Set the current window to the slides window
+    vim.api.nvim_set_current_win(self.slides_win)
+    vim.api.nvim_set_current_buf(self.slides_buf)
+
     H.make_buf_modifiable(self.slides_buf, true)
     vim.api.nvim_buf_set_lines(self.slides_buf, 0, -1, false,
         vim.fn.readfile(self.files[self.counter]))
     H.make_buf_modifiable(self.slides_buf, false)
-    vim.api.nvim_set_current_buf(self.slides_buf)
     self:update_statusline()
+
+    -- Set the current window to the slides window
+    vim.api.nvim_set_current_win(self.slides_win)
+    vim.api.nvim_set_current_buf(self.slides_buf)
 end
 
 function PresentClass:update_statusline()
     local statuline_str = H.center_string(self.counter .. '/' .. self.files_count)
+
+    -- Set the current window to the slides window
+    vim.api.nvim_set_current_win(self.presentation_win)
+    vim.api.nvim_set_current_buf(self.presentation_buf)
+
     vim.api.nvim_buf_call(self.presentation_buf, function()
         vim.cmd('let &l:statusline="' .. statuline_str .. '"')
     end)
@@ -123,10 +135,12 @@ function PresentClass:prepare_files()
     end
 
     self.files_count = count
+    self.counter = 1
+
     return true
 end
 
-function PresentClass:wipe_current_presentation()
+function PresentClass:stop_current_presentation()
     -- Try to move to the presentation tab
     pcall(vim.api.nvim_set_current_tabpage, self.presentation_tab)
 
@@ -147,18 +161,19 @@ function PresentClass:wipe_current_presentation()
     pcall(vim.api.nvim_buf_delete, self.slides_buf, { force = true })
 
     self.presentation_tab = nil
+    self.presentation_win = nil
     self.presentation_buf = nil
+    self.slides_win = nil
     self.slides_buf = nil
 end
 
 function PresentClass:start()
     if not self:prepare_files() then return end
 
-    self:wipe_current_presentation()
+    self:stop_current_presentation()
 
-    self.presentation_buf_name = 'PRESENTATION'
-    self.slide_buf_name = 'SLIDES'
-    self.counter = 1
+    local presentation_buf_name = 'PRESENTATION'
+    local slide_buf_name = 'SLIDES'
 
     -- Open a tab and disable cmdline
     vim.cmd('tabnew')
@@ -166,9 +181,9 @@ function PresentClass:start()
 
     -- Create the presentation buffer
     self.presentation_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(self.presentation_buf, self.presentation_buf_name)
+    vim.api.nvim_buf_set_name(self.presentation_buf, presentation_buf_name)
 
-    -- Make the window visible. Move to the new buffer
+    -- Move to the new buffer
     vim.api.nvim_set_current_buf(self.presentation_buf)
 
     -- Make it full screen
@@ -179,12 +194,15 @@ function PresentClass:start()
     -- Get the id of the new created tab
     self.presentation_tab = vim.api.nvim_get_current_tabpage()
 
+    -- Get the id of the new created window
+    self.presentation_win = vim.api.nvim_get_current_win()
+
     -- Configure the window and buffer
-    H.make_win_minimal(vim.fn.bufwinid(self.presentation_buf))
+    H.make_win_minimal(self.presentation_win)
     H.make_buf_modifiable(self.presentation_buf, false)
     vim.api.nvim_set_option_value('buftype', 'nofile', { buf = self.presentation_buf })
-    vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = self.presentation_buf })
 
+    -- UI math
     local ui = vim.api.nvim_list_uis()[1]
     local total_width = ui.width
     local total_height = ui.height
@@ -205,7 +223,7 @@ function PresentClass:start()
 
     -- Create the slides buffer
     self.slides_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(self.slides_buf, self.slide_buf_name)
+    vim.api.nvim_buf_set_name(self.slides_buf, slide_buf_name)
 
     -- One time only settings
     vim.api.nvim_set_option_value('wrap', true, { win = self.slides_win })
@@ -225,7 +243,7 @@ function Present.setup() _G.Present = Present end
 
 function Present.start() PresentClass:start() end
 
-function Present.stop() PresentClass:wipe_current_presentation() end
+function Present.stop() PresentClass:stop_current_presentation() end
 
 function Present.next_slide() PresentClass:next_slide() end
 
