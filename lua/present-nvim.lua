@@ -44,11 +44,6 @@ end
 local PresentClass = {}
 
 function PresentClass:next_slide()
-    if vim.api.nvim_get_current_buf() ~= self.slides_buf then
-        print("You are not in the slides' buffer.")
-        return
-    end
-
     local counter = self.counter + 1
     if counter == self.files_count + 1 then counter = 1 end
 
@@ -63,11 +58,6 @@ function PresentClass:next_slide()
 end
 
 function PresentClass:previous_slide()
-    if vim.api.nvim_get_current_buf() ~= self.slides_buf then
-        print("You are not in the slides' buffer.")
-        return
-    end
-
     local counter = self.counter - 1
     if counter == 0 then counter = self.files_count end
 
